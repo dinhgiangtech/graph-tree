@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  neo4j:
+    image: neo4j:5.22.0
+    container_name: gia-pha-neo4j
+    ports:
+      - "7474:7474" # Neo4j Browser (HTTP)
+      - "7687:7687" # Bolt Protocol (Next.js client connection)
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/import
+      - neo4j_plugins:/plugins
+    environment:
+      # Sets username/password to match the .env.local configuration: neo4j / password
+      - NEO4J_AUTH=neo4j/password
+      
+      # Automatically downloads and configures the APOC plugin (Awesome Procedures on Cypher)
+      # Highly recommended for graph traversal, family tree pathfinding, and utility queries
+      - NEO4J_PLUGINS=["apoc"]
+      
+      # Allow APOC procedures to run with unrestricted security access
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - NEO4J_dbms_security_procedures_allowlist=apoc.*
+    restart: unless-stopped
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+  neo4j_plugins:
