@@ -13,65 +13,34 @@ Trước khi bắt đầu, hãy đảm bảo máy tính của bạn đã cài đ
 
 ---
 
-## 🚀 Các bước khởi chạy dự án
+## 🚀 Các bước khởi chạy dự án (Xem chi tiết tại [docs/setup-guide.md](docs/setup-guide.md))
 
-### Bước 1: Cấu hình Biến môi trường (Environment Variables)
-
-Đảm bảo bạn đã có file `.env.local` ở thư mục gốc của dự án với các thông số kết nối cơ bản:
-
-```env
-# Neo4j Database Configuration
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=password
+### Bước 1: Cài đặt Dependencies & Môi trường
+```bash
+cp .env.example .env.local
+yarn install
 ```
 
----
+### Bước 2: Khởi chạy CSDL (PostgreSQL & Neo4j)
+```bash
+docker compose up -d
+```
 
-### Bước 2: Khởi chạy Database Neo4j bằng Docker
+### Bước 3: Khởi tạo Database Schema & Seed Data
+```bash
+# Đồng bộ bảng PostgreSQL (User, Auth, Trees, ...)
+npx prisma db push
 
-Sử dụng Docker Compose để tải và chạy một container Neo4j được cấu hình sẵn (bao gồm cả plugin mở rộng APOC hỗ trợ duyệt cây gia phả):
+# Nạp dữ liệu cây gia phả mẫu vào Neo4j
+yarn init:db
+```
 
-1. **Khởi động Neo4j ở chế độ chạy ngầm (detach mode):**
-   ```bash
-   docker compose up -d
-   ```
-
-2. **Kiểm tra trạng thái container:**
-   ```bash
-   docker compose ps
-   ```
-   *Bạn sẽ thấy container `gia-pha-neo4j` ở trạng thái `running` (hoặc `Up`).*
-
-3. **Truy cập Giao diện Neo4j Browser (tùy chọn):**
-   * Mở trình duyệt và truy cập: **[http://localhost:7474](http://localhost:7474)**
-   * Kết nối bằng tài khoản đã cấu hình:
-     * **Connection URL:** `bolt://localhost:7687`
-     * **Username:** `neo4j`
-     * **Password:** `password`
-
----
-
-### Bước 3: Cài đặt thư viện và Khởi chạy Next.js App
-
-Mở một tab terminal mới và thực hiện các lệnh sau tại thư mục gốc của dự án:
-
-1. **Cài đặt các gói phụ thuộc (Dependencies):**
-   ```bash
-   yarn install
-   # hoặc sử dụng npm
-   npm install
-   ```
-
-2. **Khởi chạy máy chủ phát triển (Development Server):**
-   ```bash
-   yarn dev
-   # hoặc sử dụng npm
-   npm run dev
-   ```
-
-3. **Truy cập ứng dụng:**
-   * Mở trình duyệt và truy cập: **[http://localhost:3000](http://localhost:3000)**
+### Bước 4: Chạy Ứng dụng
+```bash
+yarn dev
+```
+- **Web App**: [http://localhost:3000](http://localhost:3000)
+- **Neo4j Browser GUI**: [http://localhost:7474](http://localhost:7474) (Username: `neo4j`, Password: `password`)
 
 ---
 
@@ -100,3 +69,4 @@ Mở một tab terminal mới và thực hiện các lệnh sau tại thư mục
 
 2. **Lỗi không đăng nhập được trên Browser UI:**
    * Hãy chắc chắn rằng bạn đang kết nối tới cổng `7687` (`bolt://localhost:7687`) chứ không phải cổng HTTP `7474`.
+# graph-tree

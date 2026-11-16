@@ -90,3 +90,28 @@ export async function writeQuery<T = any>(query: string, params?: Record<string,
     await session.close();
   }
 }
+
+/**
+ * Initialize Neo4j Multi-tenancy Constraints & Indexes
+ */
+export async function initNeo4jConstraints(): Promise<void> {
+  const queries = [
+    `CREATE CONSTRAINT unique_tree_person_id IF NOT EXISTS
+     FOR (p:Person) REQUIRE (p.treeId, p.id) IS UNIQUE`,
+
+    `CREATE INDEX person_tree_generation_idx IF NOT EXISTS
+     FOR (p:Person) ON (p.treeId, p.generation)`,
+
+    `CREATE INDEX person_tree_name_idx IF NOT EXISTS
+     FOR (p:Person) ON (p.treeId, p.full_name)`
+  ];
+
+  for (const q of queries) {
+    try {
+      await writeQuery(q);
+    } catch (err) {
+      console.warn('Neo4j constraint initialization notice:', err);
+    }
+  }
+}
+

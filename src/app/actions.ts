@@ -1,55 +1,120 @@
 "use server";
 
-import { readQuery, writeQuery } from '@/lib/neo4j';
-import { FamilyMember, Relationship, FamilyTreeData, RelationshipType } from '@/types/family';
 import { randomUUID } from 'crypto';
+import { readQuery, writeQuery } from '@/lib/neo4j';
+import { FamilyMember, Relationship, FamilyTreeData, RelationshipType, TreeGraphFilter } from '@/types/family';
 
 /**
- * Fetches all family members and relationships from the database (e.g. 24 generations).
+ * Fetches family members and relationships from the database with optional multi-tenancy and filters.
  */
-export async function getFamilyTree(): Promise<FamilyTreeData> {
+export async function getFamilyTree(
+  treeId?: string,
+  filter?: TreeGraphFilter
+): Promise<FamilyTreeData> {
   try {
+    const params: Record<string, any> = {};
+    if (treeId) params.treeId = treeId;
+
+    let memberQuery = '';
+
+    if (filter?.rootPersonId) {
+      params.rootPersonId = filter.rootPersonId;
+      const treeCondition = treeId ? `{id: $rootPersonId, treeId: $treeId}` : `{id: $rootPersonId}`;
+      memberQuery = `
+        MATCH (root:Person ${treeCondition})
+        OPTIONAL MATCH (root)-[:PARENT_OF*0..]->(desc:Person)
+        WITH collect(DISTINCT desc) AS descendants
+        UNWIND descendants AS d
+        OPTIONAL MATCH (d)-[:SPOUSE_OF|MARRIED_TO]-(sp:Person)
+        WITH collect(DISTINCT d) + collect(DISTINCT sp) AS allNodes
+        UNWIND allNodes AS p
+        WHERE p IS NOT NULL
+      `;
+    } else {
+      const conditions: string[] = [];
+      if (treeId) conditions.push('p.treeId = $treeId');
+      if (filter?.branchId) {
+        params.branchId = filter.branchId;
+        conditions.push('p.branchId = $branchId');
+      }
+      if (filter?.minGeneration !== undefined && filter.minGeneration !== null) {
+        params.minGen = filter.minGeneration;
+        conditions.push('(p.generation >= $minGen OR p.generation IS NULL)');
+      }
+      if (filter?.maxGeneration !== undefined && filter.maxGeneration !== null) {
+        params.maxGen = filter.maxGeneration;
+        conditions.push('(p.generation <= $maxGen OR p.generation IS NULL)');
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      memberQuery = `
+        MATCH (p:Person)
+        ${whereClause}
+      `;
+    }
+
     const membersResult = await readQuery<{ member: any }>(
-      `MATCH (p:Person)
-       RETURN {
-         id: p.id,
-         name: coalesce(p.full_name, p.name, p.id),
-         gender: CASE toLower(coalesce(p.gender, 'other'))
-                   WHEN 'male' THEN 'male'
-                   WHEN 'female' THEN 'female'
-                   ELSE 'other'
-                 END,
-         title: p.title,
-         alias_name: p.alias_name,
-         birthDate: p.birthDate,
-         deathDate: p.deathDate,
-         birthPlace: p.birthPlace,
-         current_residence: p.current_residence,
-         job: coalesce(p.job, p.title),
-         bio: coalesce(p.bio, p.title),
-         avatar: p.avatar,
-         generation: coalesce(p.generation, 1),
-         is_alive: p.is_alive
-       } as member`
+      `
+      ${memberQuery}
+      RETURN DISTINCT {
+        id: p.id,
+        treeId: p.treeId,
+        branchId: p.branchId,
+        name: coalesce(p.full_name, p.name, p.id),
+        gender: CASE toLower(coalesce(p.gender, 'other'))
+                  WHEN 'male' THEN 'male'
+                  WHEN 'female' THEN 'female'
+                  ELSE 'other'
+                END,
+        title: p.title,
+        alias_name: p.alias_name,
+        birthDate: p.birthDate,
+        deathDate: p.deathDate,
+        lunar_birth_date: p.lunar_birth_date,
+        lunar_death_date: p.lunar_death_date,
+        birthPlace: p.birthPlace,
+        current_residence: p.current_residence,
+        job: coalesce(p.job, p.title),
+        bio: coalesce(p.bio, p.title),
+        avatar: p.avatar,
+        generation: coalesce(p.generation, 1),
+        is_alive: coalesce(p.is_alive, p.deathDate IS NULL),
+        in_law: coalesce(p.in_law, false),
+        resting_place: p.resting_place,
+        burial_coordinates: p.burial_coordinates,
+        marriage_order: p.marriage_order
+      } as member
+      `,
+      params
     );
 
+    const members: FamilyMember[] = membersResult.map((r) => r.member);
+    if (members.length === 0) {
+      return { members: [], relationships: [] };
+    }
+
+    const memberIds = members.map((m) => m.id);
     const relsResult = await readQuery<{ rel: any }>(
-      `MATCH (p1:Person)-[r:PARENT_OF|FATHER_OF|MOTHER_OF|ADOPTED_BY|ADOPTIVE_PARENT_OF|SPOUSE_OF|MARRIED_TO]->(p2:Person)
-       RETURN {
-         id: coalesce(r.id, elementId(r), p1.id + '_' + type(r) + '_' + p2.id),
-         from: p1.id,
-         to: p2.id,
-         type: CASE
-                 WHEN type(r) IN ['FATHER_OF', 'MOTHER_OF', 'PARENT_OF', 'ADOPTED_BY', 'ADOPTIVE_PARENT_OF'] THEN 'PARENT_OF'
-                 WHEN type(r) IN ['MARRIED_TO', 'SPOUSE_OF'] THEN 'SPOUSE_OF'
-                 ELSE type(r)
-               END
-       } as rel`
+      `
+      MATCH (p1:Person)-[r:PARENT_OF|FATHER_OF|MOTHER_OF|ADOPTED_BY|ADOPTIVE_PARENT_OF|SPOUSE_OF|MARRIED_TO]->(p2:Person)
+      WHERE p1.id IN $memberIds AND p2.id IN $memberIds
+      RETURN DISTINCT {
+        id: coalesce(r.id, elementId(r), p1.id + '_' + type(r) + '_' + p2.id),
+        from: p1.id,
+        to: p2.id,
+        type: CASE
+                WHEN type(r) IN ['FATHER_OF', 'MOTHER_OF', 'PARENT_OF', 'ADOPTED_BY', 'ADOPTIVE_PARENT_OF'] THEN 'PARENT_OF'
+                WHEN type(r) IN ['MARRIED_TO', 'SPOUSE_OF'] THEN 'SPOUSE_OF'
+                ELSE type(r)
+              END
+      } as rel
+      `,
+      { memberIds }
     );
 
     return {
-      members: membersResult.map(r => r.member),
-      relationships: relsResult.map(r => r.rel)
+      members,
+      relationships: relsResult.map((r) => r.rel),
     };
   } catch (error) {
     console.error('Error fetching family tree:', error);
@@ -63,10 +128,12 @@ export async function getFamilyTree(): Promise<FamilyTreeData> {
  */
 export async function upsertFamilyMember(
   member: Omit<FamilyMember, 'id'> & { id?: string },
-  connection?: { relativeId: string; type: RelationshipType }
+  connection?: { relativeId: string; type: RelationshipType; marriageOrder?: number },
+  treeId?: string
 ): Promise<FamilyMember> {
   const id = member.id || randomUUID();
   let generation = member.generation ?? 1;
+  const actualTreeId = treeId || member.treeId || null;
 
   // Calculate generation if a connection is specified
   if (connection && !member.id) {
@@ -91,21 +158,43 @@ export async function upsertFamilyMember(
         p.full_name = $name,
         p.gender = $gender,
         p.title = $title,
+        p.alias_name = $alias_name,
         p.birthDate = $birthDate,
         p.deathDate = $deathDate,
+        p.lunar_birth_date = $lunar_birth_date,
+        p.lunar_death_date = $lunar_death_date,
         p.birthPlace = $birthPlace,
+        p.current_residence = $current_residence,
+        p.resting_place = $resting_place,
+        p.burial_coordinates = $burial_coordinates,
+        p.is_alive = $is_alive,
+        p.in_law = $in_law,
+        p.marriage_order = $marriage_order,
         p.job = $job,
         p.bio = $bio,
         p.avatar = $avatar,
-        p.generation = $generation
+        p.generation = $generation,
+        p.treeId = coalesce($treeId, p.treeId),
+        p.branchId = coalesce($branchId, p.branchId)
     RETURN {
       id: p.id,
+      treeId: p.treeId,
+      branchId: p.branchId,
       name: coalesce(p.full_name, p.name),
       gender: toLower(coalesce(p.gender, 'other')),
       title: p.title,
+      alias_name: p.alias_name,
       birthDate: p.birthDate,
       deathDate: p.deathDate,
+      lunar_birth_date: p.lunar_birth_date,
+      lunar_death_date: p.lunar_death_date,
       birthPlace: p.birthPlace,
+      current_residence: p.current_residence,
+      resting_place: p.resting_place,
+      burial_coordinates: p.burial_coordinates,
+      is_alive: p.is_alive,
+      in_law: p.in_law,
+      marriage_order: p.marriage_order,
       job: p.job,
       bio: p.bio,
       avatar: p.avatar,
@@ -118,13 +207,24 @@ export async function upsertFamilyMember(
     name: member.name,
     gender: (member.gender || 'male').toUpperCase(),
     title: member.title || '',
+    alias_name: member.alias_name || '',
     birthDate: member.birthDate || '',
     deathDate: member.deathDate || '',
+    lunar_birth_date: member.lunar_birth_date || '',
+    lunar_death_date: member.lunar_death_date || '',
     birthPlace: member.birthPlace || '',
+    current_residence: member.current_residence || '',
+    resting_place: member.resting_place || '',
+    burial_coordinates: member.burial_coordinates || '',
+    is_alive: member.is_alive ?? (member.deathDate ? false : true),
+    in_law: !!member.in_law,
+    marriage_order: member.marriage_order || connection?.marriageOrder || null,
     job: member.job || '',
     bio: member.bio || '',
     avatar: member.avatar || '',
-    generation
+    generation,
+    treeId: actualTreeId,
+    branchId: member.branchId || null
   };
 
   const result = await writeQuery<{ member: any }>(query, params);
@@ -133,9 +233,9 @@ export async function upsertFamilyMember(
   // If a connection is specified, create the relationship
   if (connection && !member.id) {
     if (connection.type === 'PARENT_OF' || connection.type === 'FATHER_OF' || connection.type === 'MOTHER_OF') {
-      await addRelationship(connection.relativeId, id, 'PARENT_OF');
+      await addRelationship(connection.relativeId, id, 'PARENT_OF', actualTreeId);
     } else if (connection.type === 'SPOUSE_OF' || connection.type === 'MARRIED_TO') {
-      await addRelationship(connection.relativeId, id, 'SPOUSE_OF');
+      await addRelationship(connection.relativeId, id, 'SPOUSE_OF', actualTreeId);
     }
   }
 
@@ -165,7 +265,8 @@ export async function deleteFamilyMember(id: string): Promise<boolean> {
 export async function addRelationship(
   fromId: string,
   toId: string,
-  type: RelationshipType
+  type: RelationshipType,
+  treeId?: string | null
 ): Promise<Relationship> {
   const relId = randomUUID();
   const relType = type === 'MARRIED_TO' ? 'SPOUSE_OF' : type === 'FATHER_OF' || type === 'MOTHER_OF' ? 'PARENT_OF' : type;
@@ -174,7 +275,7 @@ export async function addRelationship(
     MATCH (p1:Person {id: $fromId})
     MATCH (p2:Person {id: $toId})
     MERGE (p1)-[r:${relType}]->(p2)
-    ON CREATE SET r.id = $relId
+    ON CREATE SET r.id = $relId, r.treeId = coalesce($treeId, p1.treeId)
     RETURN {
       id: r.id,
       from: p1.id,
@@ -183,7 +284,7 @@ export async function addRelationship(
     } as rel
   `;
 
-  const result = await writeQuery<{ rel: any }>(query, { fromId, toId, relId });
+  const result = await writeQuery<{ rel: any }>(query, { fromId, toId, relId, treeId: treeId || null });
   
   if (relType === 'SPOUSE_OF') {
     await writeQuery(

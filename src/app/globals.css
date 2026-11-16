@@ -1,27 +1,104 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #FAF7F0;
+  --foreground: #292524;
+  --color-parchment: #FAF7F0;
+  --color-parchment-light: #FDFBF7;
+  --color-parchment-dark: #F4EFE6;
+  --color-parchment-border: #E7DFC9;
+  --color-crimson: #8B1E1E;
+  --color-crimson-hover: #991B1B;
+  --color-crimson-dark: #7F1D1D;
+  --color-gold: #B45309;
+  --color-gold-light: #F59E0B;
+  --color-gold-bg: #FEF3C7;
+  color-scheme: light;
+}
+
+.dark {
+  --background: #1C1917;
+  --foreground: #F5EFEB;
+  --color-parchment: #1C1917;
+  --color-parchment-light: #292524;
+  --color-parchment-dark: #141210;
+  --color-parchment-border: #44403C;
+  --color-gold-bg: #451A03;
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f8fafc;
-  }
+  --font-sans: var(--font-be-vietnam-pro), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: var(--font-merriweather), Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-cinzel: var(--font-cinzel), serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Typography Utility Classes */
+.font-heritage-title {
+  font-family: var(--font-merriweather), serif;
+  letter-spacing: -0.01em;
+}
+
+.font-imperial {
+  font-family: var(--font-cinzel), serif;
+  letter-spacing: 0.05em;
+}
+
+/* Traditional Oriental Border & Corner Motifs */
+.border-heritage {
+  border: 1px solid #E7DFC9;
+}
+
+.dark .border-heritage {
+  border-color: #44403C;
+}
+
+.border-heritage-gold {
+  border: 2px solid #B45309;
+}
+
+.border-heritage-crimson {
+  border: 2px solid #8B1E1E;
+}
+
+/* Double-line frame for certificates / ancestral book pages */
+.frame-heritage-double {
+  border: 3px double #B45309;
+  box-shadow: inset 0 0 15px rgba(180, 83, 9, 0.05);
+}
+
+/* Subtle parchment paper grain */
+.bg-parchment {
+  background-color: #FAF7F0;
+}
+
+.dark .bg-parchment {
+  background-color: #1C1917;
+}
+
+/* Traditional Red Seal Badge (Dấu Triện Hoàng Gia) */
+.seal-crimson {
+  background: linear-gradient(135deg, #8B1E1E 0%, #7F1D1D 100%);
+  color: #FFFFFF;
+  border: 1px solid #B45309;
+  box-shadow: 0 2px 6px rgba(139, 30, 30, 0.35);
+}
+
+/* Gold Badge / Banner */
+.badge-gold {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  color: #92400E;
+  border: 1px solid #D97706;
 }
 
 /* Custom transitions and overrides for React Flow */
@@ -30,7 +107,15 @@ body {
 }
 
 .react-flow__controls-button {
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
+  background: #FAF7F0 !important;
+  border-bottom: 1px solid rgba(231, 223, 201, 0.8) !important;
+  color: #8B1E1E !important;
+}
+
+.dark .react-flow__controls-button {
+  background: #292524 !important;
+  border-bottom: 1px solid rgba(68, 64, 60, 0.8) !important;
+  color: #F59E0B !important;
 }
 
 .react-flow__controls-button:last-child {

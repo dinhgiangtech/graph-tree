@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview Logo Trống Đồng Tối Giản - Gia Phả Số</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Merriweather:ital,wght@0,400;0,700;0,900;1,400&family=Be+Vietnam+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #FAF7F0;
+      --card-bg: #FDFBF7;
+      --border: #E7DFC9;
+      --crimson: #8B1E1E;
+      --gold: #B45309;
+      --gold-light: #FDE68A;
+      --text: #1C1917;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      max-width: 600px;
+    }
+
+    .title {
+      font-family: 'Merriweather', serif;
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--crimson);
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--gold);
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      max-width: 1080px;
+      width: 100%;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: 24px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+      position: relative;
+    }
+
+    .card-dark {
+      background: #1C1917;
+      border-color: #44403C;
+      color: #FAF7F0;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: #78716C;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .card-dark .card-title {
+      color: var(--gold-light);
+    }
+
+    /* Seal Preview */
+    .seal-large {
+      width: 160px;
+      height: 160px;
+      border-radius: 36px;
+      background: linear-gradient(135deg, #8B1E1E 0%, #7F1D1D 50%, #991B1B 100%);
+      border: 3px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-shadow: 0 12px 30px rgba(139, 30, 30, 0.35);
+      margin-bottom: 20px;
+      transition: transform 0.3s ease;
+    }
+
+    .seal-large:hover {
+      transform: scale(1.05) rotate(2deg);
+    }
+
+    /* Isolated Icon Large */
+    .svg-isolated {
+      width: 180px;
+      height: 180px;
+      margin-bottom: 20px;
+    }
+
+    /* Header Nav Mockup */
+    .mockup-nav {
+      width: 100%;
+      background: #FAF7F0;
+      border: 1px solid #E7DFC9;
+      border-radius: 16px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .seal-small {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #8B1E1E 0%, #B45309 100%);
+      border: 1.5px solid #B45309;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      box-shadow: 0 4px 10px rgba(139, 30, 30, 0.2);
+    }
+
+    .brand-text-1 {
+      font-family: 'Merriweather', serif;
+      font-size: 16px;
+      font-weight: 900;
+      color: var(--crimson);
+      line-height: 1.2;
+    }
+
+    .brand-text-2 {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .desc {
+      font-size: 13px;
+      color: #78716C;
+      text-align: center;
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+
+    .card-dark .desc {
+      color: #A8A29E;
+    }
+
+    .specs {
+      margin-top: 40px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 32px;
+      max-width: 1080px;
+      width: 100%;
+    }
+
+    .specs h3 {
+      font-family: 'Merriweather', serif;
+      color: var(--crimson);
+      margin-bottom: 12px;
+    }
+
+    .specs ul {
+      list-style-position: inside;
+      color: #57534E;
+      line-height: 1.8;
+      font-size: 14px;
+    }
+
+    .specs li strong {
+      color: var(--gold);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="subtitle">Bách Gia Chi Phả • Tộc Phả Ký</div>
+    <h1 class="title">Logo Trống Đồng Tối Giản (Geometric Solar Drum)</h1>
+    <p style="color: #78716C; font-size: 14px;">Lược bỏ hình chim hạc, tập trung vào hoa văn hình học cổ truyền và vầng thái dương 14 cánh sắc nét</p>
+  </div>
+
+  <div class="grid">
+    <!-- Card 1: Khung Triện Đỏ Bã Trầu (Chính) -->
+    <div class="card">
+      <div class="card-title">Ấn Triện Hoàng Gia (Logo App)</div>
+      <div class="seal-large">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">
+          <defs>
+            <radialGradient id="solarGold1" cx="24" cy="24" r="23" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#FEF3C7" />
+              <stop offset="0.35" stop-color="#FDE68A" />
+              <stop offset="0.7" stop-color="#D97706" />
+              <stop offset="1" stop-color="#B45309" />
+            </radialGradient>
+            <linearGradient id="goldRingStroke1" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#FDE68A" />
+              <stop offset="0.5" stop-color="#F59E0B" />
+              <stop offset="1" stop-color="#D97706" />
+            </linearGradient>
+          </defs>
+          <circle cx="24" cy="24" r="23" stroke="url(#goldRingStroke1)" stroke-width="1.2" />
+          <circle cx="24" cy="24" r="21.6" stroke="url(#goldRingStroke1)" stroke-width="0.6" />
+          <circle cx="24" cy="24" r="20.5" stroke="url(#goldRingStroke1)" stroke-width="0.8" stroke-dasharray="1.2 1.2" stroke-opacity="0.95" />
+          <circle cx="24" cy="24" r="19.2" stroke="url(#goldRingStroke1)" stroke-width="0.5" />
+          <circle cx="24" cy="24" r="18.2" stroke="url(#goldRingStroke1)" stroke-width="0.8" stroke-dasharray="0.8 1.4" />
+          <circle cx="24" cy="24" r="17.2" stroke="url(#goldRingStroke1)" stroke-width="0.5" />
+          <circle cx="24" cy="24" r="15.8" stroke="url(#goldRingStroke1)" stroke-width="1.4" stroke-dasharray="1.6 1.6" stroke-opacity="0.9" />
+          <circle cx="24" cy="24" r="14.4" stroke="url(#goldRingStroke1)" stroke-width="0.6" />
+          <circle cx="24" cy="24" r="13.2" stroke="url(#goldRingStroke1)" stroke-width="0.8" stroke-dasharray="0.8 1" />
+          <circle cx="24" cy="24" r="12" stroke="url(#goldRingStroke1)" stroke-width="0.6" />
+          <circle cx="24" cy="24" r="10.8" stroke="url(#goldRingStroke1)" stroke-width="1.2" stroke-dasharray="1.2 1.2" stroke-opacity="0.9" />
+          <circle cx="24" cy="24" r="9.5" stroke="url(#goldRingStroke1)" stroke-width="0.5" />
+          <path d="M 24.00 15.00 L 24.65 21.00 L 27.65 15.95 L 26.05 21.65 L 30.70 18.35 L 27.05 22.75 L 32.40 22.00 L 27.30 24.00 L 32.40 26.00 L 27.05 25.25 L 30.70 29.65 L 26.05 26.35 L 27.65 32.05 L 24.65 27.00 L 24.00 33.00 L 23.35 27.00 L 20.35 32.05 L 21.95 26.35 L 17.30 29.65 L 20.95 25.25 L 15.60 26.00 L 20.70 24.00 L 15.60 22.00 L 20.95 22.75 L 17.30 18.35 L 21.95 21.65 L 20.35 15.95 L 23.35 21.00 Z" fill="url(#solarGold1)" stroke="url(#goldRingStroke1)" stroke-width="0.6" />
+          <circle cx="24" cy="24" r="3.2" fill="url(#solarGold1)" stroke="#8B1E1E" stroke-width="0.6" />
+          <circle cx="24" cy="24" r="1.4" fill="#8B1E1E" />
+        </svg>
+      </div>
+      <div class="desc">Thiết kế tối giản, thanh thoát và sắc nét tuyệt đối trong khung triện đỏ bã trầu</div>
+    </div>
+
+    <!-- Card 2: Biểu Tượng Độc Lập Trên Nền Gỗ Mun (Dark Mode) -->
+    <div class="card card-dark">
+      <div class="card-title">Chế Độ Ban Đêm (Dark Mode)</div>
+      <div class="svg-isolated">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">
+          <defs>
+            <radialGradient id="solarGold2" cx="24" cy="24" r="23" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#FEF3C7" />
+              <stop offset="0.35" stop-color="#FDE68A" />
+              <stop offset="0.7" stop-color="#D97706" />
+              <stop offset="1" stop-color="#B45309" />
+            </radialGradient>
+            <linearGradient id="goldRingStroke2" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#FDE68A" />
+              <stop offset="0.5" stop-color="#F59E0B" />
+              <stop offset="1" stop-color="#D97706" />
+            </linearGradient>
+          </defs>
+          <circle cx="24" cy="24" r="23" stroke="url(#goldRingStroke2)" stroke-width="1.2" />
+          <circle cx="24" cy="24" r="21.6" stroke="url(#goldRingStroke2)" stroke-width="0.6" />
+          <circle cx="24" cy="24" r="20.5" stroke="url(#goldRingStroke2)" stroke-width="0.8" stroke-dasharray="1.2 1.2" stroke-opacity="0.95" />
+          <circle cx="24" cy="24" r="19.2" stroke="url(#goldRingStroke2)" stroke-width="0.5" />
+          <circle cx="24" cy="24" r="18.2" stroke="url(#goldRingStroke2)" stroke-width="0.8" stroke-dasharray="0.8 1.4" />
+          <circle cx="24" cy="24" r="17.2" stroke="url(#goldRingStroke2)" stroke-width="0.5" />
+          <circle cx="24" cy="24" r="15.8" stroke="url(#goldRingStroke2)" stroke-width="1.4" stroke-dasharray="1.6 1.6" stroke-opacity="0.9" />
+          <circle cx="24" cy="24" r="14.4" stroke="url(#goldRingStroke2)" stroke-width="0.6" />
+          <circle cx="24" cy="24" r="13.2" stroke="url(#goldRingStroke2)" stroke-width="0.8" stroke-dasharray="0.8 1" />
+          <circle cx="24" cy="24" r="12" stroke="url(#goldRingStroke2)" stroke-width="0.6" />
+          <circle cx="24" cy="24" r="10.8" stroke="url(#goldRingStroke2)" stroke-width="1.2" stroke-dasharray="1.2 1.2" stroke-opacity="0.9" />
+          <circle cx="24" cy="24" r="9.5" stroke="url(#goldRingStroke2)" stroke-width="0.5" />
+          <path d="M 24.00 15.00 L 24.65 21.00 L 27.65 15.95 L 26.05 21.65 L 30.70 18.35 L 27.05 22.75 L 32.40 22.00 L 27.30 24.00 L 32.40 26.00 L 27.05 25.25 L 30.70 29.65 L 26.05 26.35 L 27.65 32.05 L 24.65 27.00 L 24.00 33.00 L 23.35 27.00 L 20.35 32.05 L 21.95 26.35 L 17.30 29.65 L 20.95 25.25 L 15.60 26.00 L 20.70 24.00 L 15.60 22.00 L 20.95 22.75 L 17.30 18.35 L 21.95 21.65 L 20.35 15.95 L 23.35 21.00 Z" fill="url(#solarGold2)" stroke="url(#goldRingStroke2)" stroke-width="0.6" />
+          <circle cx="24" cy="24" r="3.2" fill="url(#solarGold2)" stroke="#8B1E1E" stroke-width="0.6" />
+          <circle cx="24" cy="24" r="1.4" fill="#8B1E1E" />
+        </svg>
+      </div>
+      <div class="desc">Ánh vàng hoàng thổ tỏa sáng uy nghiêm trên nền gỗ mun sẫm</div>
+    </div>
+
+    <!-- Card 3: Ứng Dụng Trên Header Navigation -->
+    <div class="card" style="grid-column: 1 / -1;">
+      <div class="card-title">Ứng Dụng Thực Tế Trên Thanh Điều Hướng (Header Navigation)</div>
+      <div class="mockup-nav">
+        <div class="seal-small">
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%;">
+            <circle cx="24" cy="24" r="23" stroke="url(#goldRingStroke1)" stroke-width="1.2" />
+            <circle cx="24" cy="24" r="15.8" stroke="url(#goldRingStroke1)" stroke-width="1.4" stroke-dasharray="1.6 1.6" />
+            <circle cx="24" cy="24" r="10.8" stroke="url(#goldRingStroke1)" stroke-width="1.2" stroke-dasharray="1.2 1.2" />
+            <path d="M 24.00 15.00 L 24.65 21.00 L 27.65 15.95 L 26.05 21.65 L 30.70 18.35 L 27.05 22.75 L 32.40 22.00 L 27.30 24.00 L 32.40 26.00 L 27.05 25.25 L 30.70 29.65 L 26.05 26.35 L 27.65 32.05 L 24.65 27.00 L 24.00 33.00 L 23.35 27.00 L 20.35 32.05 L 21.95 26.35 L 17.30 29.65 L 20.95 25.25 L 15.60 26.00 L 20.70 24.00 L 15.60 22.00 L 20.95 22.75 L 17.30 18.35 L 21.95 21.65 L 20.35 15.95 L 23.35 21.00 Z" fill="url(#solarGold1)" stroke="url(#goldRingStroke1)" stroke-width="0.6" />
+            <circle cx="24" cy="24" r="3.2" fill="url(#solarGold1)" stroke="#8B1E1E" stroke-width="0.6" />
+            <circle cx="24" cy="24" r="1.4" fill="#8B1E1E" />
+          </svg>
+        </div>
+        <div>
+          <div class="brand-text-1">GIA PHẢ SỐ</div>
+          <div class="brand-text-2">Tộc Phả Truyền Thống</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="specs">
+    <h3>Đặc Tả Thiết Kế Trống Đồng Tối Giản</h3>
+    <ul>
+      <li><strong>Ngôi sao thái dương 14 cánh:</strong> Tâm điểm vầng thái dương của văn hóa Đông Sơn tượng trưng cho sự khai sáng và trường tồn.</li>
+      <li><strong>Vành răng cưa & hoa văn quả trám:</strong> Các hoa văn hình học cổ truyền tinh giản, không rối mắt ở các kích thước nhỏ (16px - 48px).</li>
+      <li><strong>Vành chấm tròn tiếp tuyến:</strong> Sự tuần hoàn âm dương và liên kết các đời.</li>
+      <li><strong>Định dạng Vector SVG:</strong> Hoàn toàn trong suốt (Transparent), siêu nhẹ và tương thích mọi giao diện.</li>
+    </ul>
+  </div>
+</body>
+</html>

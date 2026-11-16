@@ -1,20 +1,29 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Be_Vietnam_Pro, Cinzel, Merriweather } from "next/font/google";
 import "./globals.css";
+import HeaderNav from "@/components/HeaderNav";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const beVietnamPro = Be_Vietnam_Pro({
+  variable: "--font-be-vietnam-pro",
+  subsets: ["latin", "vietnamese"],
+  weight: ["300", "400", "500", "600", "700", "800"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const cinzel = Cinzel({
+  variable: "--font-cinzel",
   subsets: ["latin"],
+  weight: ["600", "700", "800", "900"],
+});
+
+const merriweather = Merriweather({
+  variable: "--font-merriweather",
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "700", "900"],
 });
 
 export const metadata: Metadata = {
-  title: "Cây Gia Phả Kỹ Thuật Số | Neo4j & React Flow",
-  description: "Ứng dụng quản lý và trực quan hóa sơ đồ phả hệ gia đình trực quan, hiện đại.",
+  title: "Gia Phả Số | Nền Tảng Phả Hệ Dòng Tộc Thông Minh",
+  description: "Ứng dụng quản lý, lưu trữ và trực quan hóa sơ đồ phả hệ gia đình, dòng tộc truyền thống Việt Nam.",
 };
 
 export default function RootLayout({
@@ -25,11 +34,32 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${beVietnamPro.variable} ${cinzel.variable} ${merriweather.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-        {children}
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var saved = localStorage.getItem('gia_pha_theme');
+                if (saved === 'dark') {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col font-sans bg-[#FAF7F0] dark:bg-[#1C1917] text-[#292524] dark:text-[#F5EFEB] selection:bg-[#8B1E1E]/20 selection:text-[#8B1E1E]">
+        <HeaderNav />
+        <main className="flex-1 flex flex-col">
+          {children}
+        </main>
       </body>
     </html>
   );
 }
+

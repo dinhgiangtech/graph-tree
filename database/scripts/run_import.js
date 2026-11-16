@@ -2,17 +2,20 @@ const fs = require('fs');
 const path = require('path');
 const neo4j = require('neo4j-driver');
 
-// Read .env.local if exists
+// Read .env.local and .env if exists
 function loadEnv() {
-  const envPath = path.join(__dirname, '../../.env.local');
-  if (fs.existsSync(envPath)) {
-    const lines = fs.readFileSync(envPath, 'utf-8').split('\n');
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#')) {
-        const [key, ...vals] = trimmed.split('=');
-        if (key && vals.length > 0) {
-          process.env[key.trim()] = vals.join('=').trim();
+  const envFiles = ['.env', '.env.local'];
+  for (const file of envFiles) {
+    const envPath = path.join(__dirname, '../../', file);
+    if (fs.existsSync(envPath)) {
+      const lines = fs.readFileSync(envPath, 'utf-8').split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const [key, ...vals] = trimmed.split('=');
+          if (key && vals.length > 0) {
+            process.env[key.trim()] = vals.join('=').trim().replace(/^["']|["']$/g, '');
+          }
         }
       }
     }
@@ -29,29 +32,69 @@ console.log(`🔌 Kết nối tới Neo4j tại: ${uri} (user: ${user})...`);
 
 const driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
 
-// Helper to split Cypher statements while ignoring semicolons inside strings or comments
+// Helper to split Cypher statements while ignoring semicolons and comments inside strings
 function splitStatements(content) {
-  // Remove single-line comments // ...
-  const lines = content.split('\n');
-  const cleanedLines = lines.map(line => {
-    const commentIdx = line.indexOf('//');
-    if (commentIdx !== -1) {
-      // Simple check to make sure // is not inside a string
-      const before = line.substring(0, commentIdx);
-      const singleQuotes = (before.match(/'/g) || []).length;
-      const doubleQuotes = (before.match(/"/g) || []).length;
-      if (singleQuotes % 2 === 0 && doubleQuotes % 2 === 0) {
-        return before;
+  const statements = [];
+  let current = '';
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+    const prevChar = i > 0 ? content[i - 1] : '';
+    const nextChar = i < content.length - 1 ? content[i + 1] : '';
+
+    // Handle comments outside of quotes
+    if (!inSingleQuote && !inDoubleQuote) {
+      if (!inLineComment && !inBlockComment && char === '/' && nextChar === '/') {
+        inLineComment = true;
+        i++; // skip next /
+        continue;
+      }
+      if (inLineComment && (char === '\n' || char === '\r')) {
+        inLineComment = false;
+        current += char;
+        continue;
+      }
+      if (!inLineComment && !inBlockComment && char === '/' && nextChar === '*') {
+        inBlockComment = true;
+        i++; // skip next *
+        continue;
+      }
+      if (inBlockComment && char === '*' && nextChar === '/') {
+        inBlockComment = false;
+        i++; // skip next /
+        continue;
       }
     }
-    return line;
-  });
 
-  const fullCleaned = cleanedLines.join('\n');
-  const statements = fullCleaned
-    .split(';')
-    .map(s => s.trim())
-    .filter(s => s.length > 0);
+    if (inLineComment || inBlockComment) {
+      continue;
+    }
+
+    // Handle quotes (with escape character check)
+    if (char === "'" && prevChar !== '\\' && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+    } else if (char === '"' && prevChar !== '\\' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+    }
+
+    // Handle semicolon outside of strings
+    if (char === ';' && !inSingleQuote && !inDoubleQuote) {
+      if (current.trim().length > 0) {
+        statements.push(current.trim());
+      }
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  if (current.trim().length > 0) {
+    statements.push(current.trim());
+  }
 
   return statements;
 }
@@ -113,6 +156,64 @@ async function run() {
       const count = r.get('count').toNumber();
       console.log(`     + Đời ${gen !== null ? gen : 'Chưa rõ'}: ${count} người`);
     });
+
+    // Tự động liên kết treeId với Tree của tài khoản dinhgiang@gmail.com
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const user = await prisma.user.findUnique({
+        where: { email: 'dinhgiang@gmail.com' },
+        include: {
+          memberships: {
+            include: { tree: { include: { branches: true } } }
+          }
+        }
+      });
+
+      if (user && user.memberships.length > 0) {
+        const tree = user.memberships[0].tree;
+        console.log(`\n🔗 Đang liên kết ${totalPersons} thành viên vào Cây Gia Phả: "${tree.name}" (ID: ${tree.id})...`);
+        await session.run(`MATCH (p:Person) SET p.treeId = $treeId`, { treeId: tree.id });
+        console.log(`   ✅ Đã gán treeId = "${tree.id}" cho toàn bộ thành viên.`);
+
+        // Gán branchId nếu có
+        if (tree.branches && tree.branches.length > 0) {
+          const b1 = tree.branches.find(b => b.name.includes('Chi 1'));
+          const b2 = tree.branches.find(b => b.name.includes('Chi 2'));
+          const b3 = tree.branches.find(b => b.name.includes('Chi 3'));
+          const b4 = tree.branches.find(b => b.name.includes('Chi 4'));
+
+          if (b1) {
+            await session.run(
+              `MATCH (p:Person) WHERE p.id CONTAINS 'KHI' OR p.id CONTAINS 'DUNG' OR p.id CONTAINS 'LUU' OR p.id CONTAINS 'D21' OR p.id CONTAINS 'D22' OR p.id CONTAINS 'D23' OR p.id CONTAINS 'D24' OR p.id CONTAINS 'D25' SET p.branchId = $branchId`,
+              { branchId: b1.id }
+            );
+          }
+          if (b2) {
+            await session.run(
+              `MATCH (p:Person) WHERE p.id CONTAINS 'BACH' OR p.id CONTAINS 'NHAM' OR p.id CONTAINS 'NGA' OR p.id CONTAINS 'MUON' SET p.branchId = $branchId`,
+              { branchId: b2.id }
+            );
+          }
+          if (b3) {
+            await session.run(
+              `MATCH (p:Person) WHERE p.id CONTAINS 'CHI_LANG' OR p.id CONTAINS 'CL' SET p.branchId = $branchId`,
+              { branchId: b3.id }
+            );
+          }
+          if (b4) {
+            await session.run(
+              `MATCH (p:Person) WHERE p.id CONTAINS 'TAY_BAC' OR p.id CONTAINS 'TB' SET p.branchId = $branchId`,
+              { branchId: b4.id }
+            );
+          }
+          console.log(`   🌿 Đã đồng bộ branchId vào các Node đồ thị.`);
+        }
+      }
+      await prisma.$disconnect();
+    } catch (err) {
+      console.warn('⚠️ Lưu ý: Không thể tự động liên kết Prisma Tree (bỏ qua):', err.message);
+    }
 
     console.log('\n🎉 ĐÃ NẠP TOÀN BỘ DỮ LIỆU VÀO NEO4J THÀNH CÔNG!');
 

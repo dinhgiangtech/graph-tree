@@ -1,6 +1,30 @@
 version: '3.8'
 
 services:
+  # -------------------------------------------------------------
+  # 1. PostgreSQL (Relational DB for Auth, Trees, RBAC, Logs)
+  # -------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: gia-pha-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=gia_pha_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gia_pha_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------
+  # 2. Neo4j (Graph DB for Family Nodes & Relationships)
+  # -------------------------------------------------------------
   neo4j:
     image: neo4j:5.22.0
     container_name: gia-pha-neo4j
@@ -13,11 +37,10 @@ services:
       - neo4j_import:/import
       - neo4j_plugins:/plugins
     environment:
-      # Sets username/password to match the .env.local configuration: neo4j / password
+      # Sets username/password to match configuration: neo4j / password
       - NEO4J_AUTH=neo4j/password
       
       # Automatically downloads and configures the APOC plugin (Awesome Procedures on Cypher)
-      # Highly recommended for graph traversal, family tree pathfinding, and utility queries
       - NEO4J_PLUGINS=["apoc"]
       
       # Allow APOC procedures to run with unrestricted security access
@@ -26,6 +49,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  postgres_data:
   neo4j_data:
   neo4j_logs:
   neo4j_import:

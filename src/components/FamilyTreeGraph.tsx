@@ -22,11 +22,15 @@ import {
   getFamilyTree
 } from '@/app/actions';
 import { calculateTreeLayout } from '@/lib/treeLayout';
+import { useTreeStore } from '@/lib/useTreeStore';
 import { FamilyMemberNode } from './FamilyMemberNode';
 import { FamilyUnionNode } from './FamilyUnionNode';
-import { MemberSearch } from './MemberSearch';
 import { EmptyTreeState } from './EmptyTreeState';
 import { MemberDrawer } from './drawer/MemberDrawer';
+import { ProposalsDrawer, ProposalItem } from './drawer/ProposalsDrawer';
+import TreeToolbar from './graph/TreeToolbar';
+import { getTreeProposals } from '@/app/actions/proposal';
+import { TreeRole } from '@prisma/client';
 
 // Custom Node types object for ReactFlow
 const NODE_TYPES = {
@@ -36,12 +40,64 @@ const NODE_TYPES = {
 
 interface FamilyTreeGraphProps {
   initialData: FamilyTreeData;
+  treeId?: string;
+  branches?: Array<{ id: string; name: string }>;
+  userRole?: TreeRole | null;
 }
 
-function FamilyTreeGraph({ initialData }: FamilyTreeGraphProps) {
+function FamilyTreeGraph({
+  initialData,
+  treeId,
+  branches = [],
+  userRole,
+}: FamilyTreeGraphProps) {
   const [data, setData] = useState<FamilyTreeData>(initialData);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
+  const [isProposalsOpen, setIsProposalsOpen] = useState(false);
+  const [proposals, setProposals] = useState<ProposalItem[]>([]);
   const { setCenter, fitView } = useReactFlow();
+
+  const { filter, setRootPerson } = useTreeStore();
+
+  const fetchProposals = useCallback(async () => {
+    if (!treeId || (userRole !== TreeRole.ADMIN && userRole !== TreeRole.EDITOR)) return;
+    try {
+      const list = await getTreeProposals(treeId);
+      setProposals(list as any);
+    } catch (err) {
+      console.error('Error fetching proposals:', err);
+    }
+  }, [treeId, userRole]);
+
+  useEffect(() => {
+    fetchProposals();
+  }, [fetchProposals]);
+
+  // Load / Re-fetch tree data whenever filter or treeId changes
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchFilteredData() {
+      try {
+        const res = await getFamilyTree(treeId, filter);
+        if (isMounted) {
+          setData(res);
+        }
+      } catch (err) {
+        console.error('Error filtering tree data:', err);
+      }
+    }
+
+    // Only refetch if filter is active or if data changed
+    if (filter.branchId || filter.minGeneration || filter.maxGeneration || filter.rootPersonId) {
+      fetchFilteredData();
+    } else {
+      fetchFilteredData();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [treeId, filter]);
 
   // Compute flow nodes and edges
   const layoutData = useCallback(
@@ -66,32 +122,40 @@ function FamilyTreeGraph({ initialData }: FamilyTreeGraphProps) {
   }, [data, selectedMember, layoutData, setNodes, setEdges]);
 
   // Center view on mount or reset
+  const handleFitView = useCallback(() => {
+    setTimeout(() => {
+      fitView({ padding: 0.15, duration: 600 });
+    }, 50);
+  }, [fitView]);
+
   useEffect(() => {
     if (nodes.length > 0) {
-      setTimeout(() => {
-        fitView({ padding: 0.1, duration: 800 });
-      }, 100);
+      handleFitView();
     }
-  }, [data.members.length, fitView]);
+  }, [data.members.length, handleFitView]);
 
   // Node Selection Handler
   const onNodeClick = (_: any, node: Node) => {
     if (node.type === 'familyUnion') return;
-    const member = data.members.find(m => m.id === node.id);
+    const member = data.members.find((m) => m.id === node.id);
     if (member) {
       setSelectedMember(member);
-      // Center camera on clicked node
-      setCenter(node.position.x + 112, node.position.y + 40, { zoom: 1.1, duration: 600 });
+      setCenter(node.position.x + 120, node.position.y + 40, { zoom: 1.15, duration: 600 });
     }
   };
 
   // Member search item selected
   const handleSelectSearchResult = (member: FamilyMember) => {
     setSelectedMember(member);
-    const matchedNode = nodes.find(n => n.id === member.id);
+    const matchedNode = nodes.find((n) => n.id === member.id);
     if (matchedNode) {
-      setCenter(matchedNode.position.x + 112, matchedNode.position.y + 40, { zoom: 1.2, duration: 800 });
+      setCenter(matchedNode.position.x + 120, matchedNode.position.y + 40, { zoom: 1.25, duration: 800 });
     }
+  };
+
+  // Focus Subtree starting from a specific ancestor
+  const handleFocusSubtree = (member: FamilyMember) => {
+    setRootPerson(member.id, member.name);
   };
 
   // Database Seed Handler
@@ -108,22 +172,27 @@ function FamilyTreeGraph({ initialData }: FamilyTreeGraphProps) {
     const id = 'root';
     const emptyMember: FamilyMember = {
       id,
-      name: 'Người Sáng Lập Gia Tộc',
+      name: 'Khởi Tổ Gia Tộc',
       gender: 'male',
-      generation: 1
+      generation: 1,
+      treeId: treeId || undefined,
     };
-    const newM = await upsertFamilyMember(emptyMember);
-    const tree = await getFamilyTree();
+    const newM = await upsertFamilyMember(emptyMember, undefined, treeId);
+    const tree = await getFamilyTree(treeId);
     setData(tree);
     setSelectedMember(newM);
   };
 
   // Save changes to profile details
   const handleSaveMember = async (updatedForm: FamilyMember) => {
-    const updated = await upsertFamilyMember(updatedForm);
-    setData(prev => ({
+    const updated = await upsertFamilyMember(
+      { ...updatedForm, treeId: treeId || updatedForm.treeId },
+      undefined,
+      treeId
+    );
+    setData((prev) => ({
       ...prev,
-      members: prev.members.map(m => (m.id === updated.id ? updated : m))
+      members: prev.members.map((m) => (m.id === updated.id ? updated : m)),
     }));
     setSelectedMember(updated);
   };
@@ -135,11 +204,11 @@ function FamilyTreeGraph({ initialData }: FamilyTreeGraphProps) {
 
     const success = await deleteFamilyMember(selectedMember.id);
     if (success) {
-      setData(prev => ({
-        members: prev.members.filter(m => m.id !== selectedMember.id),
+      setData((prev) => ({
+        members: prev.members.filter((m) => m.id !== selectedMember.id),
         relationships: prev.relationships.filter(
-          r => r.from !== selectedMember.id && r.to !== selectedMember.id
-        )
+          (r) => r.from !== selectedMember.id && r.to !== selectedMember.id
+        ),
       }));
       setSelectedMember(null);
     }
@@ -152,26 +221,49 @@ function FamilyTreeGraph({ initialData }: FamilyTreeGraphProps) {
   ) => {
     if (!selectedMember) return;
 
-    const newMember = await upsertFamilyMember(newMemberData, {
-      relativeId: selectedMember.id,
-      type: relType
-    });
+    const newMember = await upsertFamilyMember(
+      { ...newMemberData, treeId: treeId || undefined },
+      {
+        relativeId: selectedMember.id,
+        type: relType,
+      },
+      treeId
+    );
 
-    const refreshed = await getFamilyTree();
+    const refreshed = await getFamilyTree(treeId, filter);
     setData(refreshed);
     setSelectedMember(newMember);
   };
 
+  const generations = data.members.map((m) => m.generation ?? 1);
+  const maxGenerations = data.members.length > 0 ? Math.max(...generations) : 0;
+
+  const pendingCount = proposals.filter((p) => p.status === 'PENDING').length;
+
+  const handleProposalReviewed = async () => {
+    const refreshed = await getFamilyTree(treeId, filter);
+    setData(refreshed);
+    fetchProposals();
+  };
+
   return (
-    <div className="flex h-[calc(100vh-64px)] w-full overflow-hidden bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans">
+    <div className="flex h-full w-full overflow-hidden bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans relative">
       {/* ==========================================
           LEFT SIDE: THE TREE VISUAL CANVAS
           ========================================== */}
       <div className="flex-1 h-full relative">
-        {/* Top Search bar */}
-        <MemberSearch
-          members={data.members}
+        {/* Top Interactive Toolbar (Search, Filter, FitView, Branches, Proposals) */}
+        <TreeToolbar
+          allMembers={data.members}
+          branches={branches}
           onSelectMember={handleSelectSearchResult}
+          onFitView={handleFitView}
+          displayedCount={data.members.length}
+          totalCount={initialData.members.length || data.members.length}
+          maxGenerations={maxGenerations}
+          userRole={userRole}
+          onOpenProposals={() => setIsProposalsOpen(true)}
+          pendingProposalsCount={pendingCount}
         />
 
         {/* Floating Database seed button if empty */}
@@ -194,12 +286,12 @@ function FamilyTreeGraph({ initialData }: FamilyTreeGraphProps) {
           fitViewOptions={{ padding: 0.15 }}
           className="bg-slate-50 dark:bg-slate-900/50"
         >
-          <Background color="#cbd5e1" gap={20} size={1} />
-          <Controls className="!bg-white dark:!bg-slate-800 !border-slate-200 dark:!border-slate-700 !shadow-md !rounded-xl overflow-hidden" />
+          <Background color="#cbd5e1" gap={24} size={1} />
+          <Controls className="!bg-white dark:!bg-slate-800 !border-slate-200 dark:!border-slate-700 !shadow-lg !rounded-2xl overflow-hidden !bottom-4 !left-4" />
           <MiniMap
             zoomable
             pannable
-            className="!bg-white/80 dark:!bg-slate-800/80 !border-slate-200 dark:!border-slate-700 !shadow-md !rounded-xl"
+            className="!bg-white/85 dark:!bg-slate-800/85 !border-slate-200 dark:!border-slate-700 !shadow-lg !rounded-2xl !bottom-4 !right-4"
             nodeColor={(node) => {
               if (node.type === 'familyUnion') return 'transparent';
               if ((node.data as any)?.gender === 'male') return '#93c5fd';
@@ -222,7 +314,21 @@ function FamilyTreeGraph({ initialData }: FamilyTreeGraphProps) {
         onSaveMember={handleSaveMember}
         onDeleteMember={handleDeleteMember}
         onAddRelation={handleAddRelation}
+        treeId={treeId}
       />
+
+      {/* ==========================================
+          PROPOSALS QUEUE DRAWER (ADMIN / EDITOR)
+          ========================================== */}
+      {treeId && (
+        <ProposalsDrawer
+          isOpen={isProposalsOpen}
+          onClose={() => setIsProposalsOpen(false)}
+          proposals={proposals}
+          treeId={treeId}
+          onProposalReviewed={handleProposalReviewed}
+        />
+      )}
     </div>
   );
 }
